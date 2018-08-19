@@ -31,6 +31,7 @@
                       type="password"
                       v-model.trim="form.password"
                       required
+                      :state="validatePassword"
                       placeholder="Enter password">
         </b-form-input>
       </b-form-group>
@@ -41,6 +42,7 @@
 
 <script lang="ts">
 import Vue from 'vue';
+import firebase from '@/config/firebaseinit.ts';
 
 export default Vue.extend({
   name: 'SignUp',
@@ -49,28 +51,77 @@ export default Vue.extend({
       form: {
         email: '',
         name: '',
-        password: '',
-      },
+        password: ''
+      }
     };
   },
   computed: {
-    validateEmail() : Boolean {
+    validateEmail(): Boolean {
       const emailReg = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-      let result = false;
+      let result: Boolean = false;
       if (emailReg.test(this.form.email)) {
         result = true;
       }
       if (this.form.email.length === 0) {
+        // its undefined to leave form in neutral state when empty
+        // tslint:disable-next-line
+        result = undefined;
+      }
+      return result;
+    },
+    validatePassword(): Boolean {
+      const passwordReg = /^(?=.*\d).{6,15}$/;
+      let result: Boolean = false;
+      if (passwordReg.test(this.form.password)) {
         result = true;
+      }
+      if (this.form.password.length === 0) {
+        // its undefined to leave form in neutral state when empty
+        result = undefined;
       }
       return result;
     }
   },
   methods: {
-    onSubmit(evt : any) : void {
+    onSubmit(evt: any): void {
       evt.preventDefault();
-      alert(JSON.stringify(this.form));
-    },
+      firebase
+        .auth()
+        .createUserWithEmailAndPassword(this.form.email, this.form.password)
+        .then(() => {
+          // Create user profile and save name to firestore user profile
+          let currentUser = {
+            email: this.form.email,
+            name: this.form.name,
+            uid: firebase.auth().currentUser!.uid
+          };
+          console.log(firebase.auth().currentUser!.emailVerified);
+          // firebase
+          //   .firestore()
+          //   .collection("users")
+          //   .doc(currentUser.uid)
+          //   .set({
+          //     name: currentUser.name,
+          //     email: currentUser.email
+          //   });
+          firebase
+            .auth()
+            .currentUser!.sendEmailVerification()
+            .then(() => {
+              // Email Sent
+              this.$emit('verify', currentUser);
+            })
+            .catch((error: any) => {
+              // error
+            });
+        })
+        .catch(function(error: any) {
+          // Handle Errors here.
+          let errorCode = error.code;
+          // ...
+          console.log(errorCode);
+        });
+    }
   }
 });
 </script>
