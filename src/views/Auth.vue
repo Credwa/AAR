@@ -22,7 +22,7 @@ export default Vue.extend({
     };
   },
   methods: {
-    awaitVerify() {
+    awaitVerify(): void {
       this.isSignedUp = true;
     }
   }

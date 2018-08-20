@@ -11,14 +11,15 @@
                       @input="codeInputted"
                       v-model.trim="form.code"
                       required
-                      placeholder="Enter code">
+                      placeholder="Enter code"
+                      :disabled="form.code.length > 3">
         </b-form-input>
       </b-form-group>
     </b-form>
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import Vue from 'vue';
 import firebase from '@/config/firebaseinit.ts';
 
@@ -32,13 +33,27 @@ export default Vue.extend({
       }
     };
   },
-  methods: {
-    codeInputted () {
-      if (this.form.code.length >= 5) {
-        this.form.code = this.form.code.substring(0,4);
-      }
+  watch: {
+    form: {
+      handler(val) {
+        if (this.form.code.length > 3) {
+          this.codeSubmitted(this.form.code);
+        }
+      },
+      deep: true
     }
   },
+  methods: {
+    codeSubmitted(code : String): void {
+      console.log('submitted', code);
+      this.$router.push('/join');
+    },
+    codeInputted(): void {
+      if (this.form.code.length > 4) {
+        this.form.code = '0';
+      }
+    }
+  }
 });
 </script>
 

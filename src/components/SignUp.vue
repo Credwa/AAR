@@ -19,7 +19,7 @@
                       type="email"
                       v-model.trim="form.email"
                       required
-                      :state="validateEmail"
+                      :state="form.email.length > 0 ? validateEmail : null"
                       placeholder="Enter email">
         </b-form-input>
       </b-form-group>
@@ -31,10 +31,12 @@
                       type="password"
                       v-model.trim="form.password"
                       required
-                      :state="validatePassword"
+                      :state="form.password.length > 0 ? validatePassword : null"
                       placeholder="Enter password">
         </b-form-input>
       </b-form-group>
+      <span v-if="emailTaken" class="error">Email Already In Use</span>
+      <span v-if="weakPassword" class="error">Password must be atleast 6 characters</span>
       <b-button type="submit" class="center-it">Get started now</b-button>
     </b-form>
   </div>
@@ -42,6 +44,7 @@
 
 <script lang="ts">
 import Vue from 'vue';
+import { mapState } from 'vuex';
 import firebase from '@/config/firebaseinit.ts';
 
 export default Vue.extend({
@@ -52,7 +55,9 @@ export default Vue.extend({
         email: '',
         name: '',
         password: ''
-      }
+      },
+      emailTaken: false,
+      weakPassword: false
     };
   },
   computed: {
@@ -62,28 +67,20 @@ export default Vue.extend({
       if (emailReg.test(this.form.email)) {
         result = true;
       }
-      if (this.form.email.length === 0) {
-        // its undefined to leave form in neutral state when empty
-        // tslint:disable-next-line
-        result = undefined;
-      }
       return result;
     },
     validatePassword(): Boolean {
-      const passwordReg = /^(?=.*\d).{6,15}$/;
+      const passwordReg = /^(?=.*\w).{6,15}$/;
       let result: Boolean = false;
       if (passwordReg.test(this.form.password)) {
         result = true;
-      }
-      if (this.form.password.length === 0) {
-        // its undefined to leave form in neutral state when empty
-        result = undefined;
       }
       return result;
     }
   },
   methods: {
     onSubmit(evt: any): void {
+      let self = this;
       evt.preventDefault();
       firebase
         .auth()
@@ -91,25 +88,24 @@ export default Vue.extend({
         .then(() => {
           // Create user profile and save name to firestore user profile
           let currentUser = {
-            email: this.form.email,
-            name: this.form.name,
-            uid: firebase.auth().currentUser!.uid
+            UserEmail: this.form.email,
+            uid: firebase.auth().currentUser!.uid,
+            TeamUID: "",
           };
-          console.log(firebase.auth().currentUser!.emailVerified);
-          // firebase
-          //   .firestore()
-          //   .collection("users")
-          //   .doc(currentUser.uid)
-          //   .set({
-          //     name: currentUser.name,
-          //     email: currentUser.email
-          //   });
+          firebase
+            .database()
+            .ref('Users/' + currentUser.uid)
+            .set({
+              UserEmail: currentUser.UserEmail,
+              TeamUID: currentUser.TeamUID
+            });
           firebase
             .auth()
             .currentUser!.sendEmailVerification()
             .then(() => {
               // Email Sent
               this.$emit('verify', currentUser);
+              this.$store.commit('updateUser', currentUser);
             })
             .catch((error: any) => {
               // error
@@ -118,8 +114,14 @@ export default Vue.extend({
         .catch(function(error: any) {
           // Handle Errors here.
           let errorCode = error.code;
-          // ...
-          console.log(errorCode);
+
+          if (errorCode == 'auth/weak-password') {
+            self.weakPassword = true;
+          }
+
+          if (errorCode == 'auth/email-already-in-use') {
+            self.emailTaken = true;
+          }
         });
     }
   }
@@ -134,5 +136,10 @@ export default Vue.extend({
   align-content: center;
   align-items: center;
   flex-direction: center;
+}
+
+.error {
+  color: red;
+  font-size: 12px;
 }
 </style>
