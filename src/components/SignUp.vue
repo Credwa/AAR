@@ -61,17 +61,17 @@ export default Vue.extend({
     };
   },
   computed: {
-    validateEmail(): Boolean {
+    validateEmail(): boolean {
       const emailReg = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-      let result: Boolean = false;
+      let result: boolean = false;
       if (emailReg.test(this.form.email)) {
         result = true;
       }
       return result;
     },
-    validatePassword(): Boolean {
+    validatePassword(): boolean {
       const passwordReg = /^(?=.*\w).{6,15}$/;
-      let result: Boolean = false;
+      let result: boolean = false;
       if (passwordReg.test(this.form.password)) {
         result = true;
       }
@@ -80,7 +80,7 @@ export default Vue.extend({
   },
   methods: {
     onSubmit(evt: any): void {
-      let self = this;
+      const self = this;
       evt.preventDefault();
       firebase
         .auth()

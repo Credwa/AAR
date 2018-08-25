@@ -32,8 +32,8 @@ export default new Vuex.Store({
       TeamCreatedDate: String,
       TeamMembers: Array
     },
-    teamAars: new Array<Object>(),
-    teamUsers: new Array<Object>()
+    teamAars: new Array<object>(),
+    teamUsers: new Array<object>()
   },
   mutations: {
     updateUser: (state, newUser) => {

@@ -7,7 +7,8 @@
 
 <script lang="ts">
 import Vue from 'vue';
-import SignUp from '@/components/SignUp.vue';
+import SignUp from '@/components/SignUp.vue'
+'';
 import Confirmation from '@/components/Confirmation.vue'
 
 export default Vue.extend({

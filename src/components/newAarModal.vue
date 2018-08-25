@@ -3,7 +3,7 @@
   <b-btn class="aarBtn" v-b-modal.aarModal>New Aar</b-btn>
   <b-modal @shown="modalOpen" id="aarModal" centered size="lg" :hide-footer="true" :hide-header="true" ref="aarModal">
     <b-container fluid>
-      <b-form>
+      <b-form v-if="!sharing">
         <b-form-group label="Title"
                       label-for="titleInput"
                       id="titleGroupInput">
@@ -79,28 +79,34 @@
          </b-btn>
        </div>
       </b-form>
+      <share v-if="sharing" :uid="key"></share>
     </b-container>
   </b-modal>
 </div>
 
 </template>
 
-<script lang="ts">
+<script>
 import Vue from 'vue';
 import firebase from '@/config/firebaseinit.ts';
+import Share from '@/components/Share.vue';
 export default Vue.extend({
+  components: {
+    Share
+  },
   data() {
     return {
       WhatWasLearntText: '',
       mode: null,
       key: null,
+      sharing: false,
       form: {
         Title: '',
         Related: '',
         Date: null,
         WhatShouldHaveHappenedText: '',
         WhatActuallyHappenedText: '',
-        WhatWasLearnt: new Array<String>(),
+        WhatWasLearnt: new Array(),
         WhatNeedsToKnowText: ''
       }
     };
@@ -110,7 +116,7 @@ export default Vue.extend({
       if (this.$root.newModalData) {
         let data = this.$root.newModalData;
         this.mode = data.mode;
-        this.key = this.$root.key;
+        this.key = data.key;
         this.$root.newModalData = {};
         this.form.Title = data.Title;
         this.form.Related = data.RelatedTo;
@@ -121,23 +127,23 @@ export default Vue.extend({
         this.form.WhatWasLearnt = data.WhatWasLearnt;
       }
     },
-    newLearntItem(): void {
+    newLearntItem() {
       this.form.WhatWasLearnt.push(this.WhatWasLearntText);
       this.WhatWasLearntText = '';
     },
-    save(): void {
+    save() {
       const date = new Date();
       let data = {
         Title: this.form.Title,
         Creator: this.$store.state.user.uid,
-        RelatedTo: this.form.Related,
+        RelatedTo: this.form.Related || null,
         DateCreated: `${date.toDateString()} ${date.getUTCHours()}:${date.getUTCMinutes()}`,
-        DateOfAAR: this.form.Date,
-        WhatShouldHaveHappenedText: this.form.WhatShouldHaveHappenedText,
-        WhatActuallyHappenedText: this.form.WhatShouldHaveHappenedText,
-        WhatWasLearnt: this.form.WhatWasLearnt,
-        WhatNeedsToKnow: this.form.WhatNeedsToKnowText,
-        SharedWith: [],
+        DateOfAAR: this.form.Date || null,
+        WhatShouldHaveHappenedText: this.form.WhatShouldHaveHappenedText || null,
+        WhatActuallyHappenedText: this.form.WhatShouldHaveHappenedText || null,
+        WhatWasLearnt: this.form.WhatWasLearnt || null,
+        WhatNeedsToKnow: this.form.WhatNeedsToKnowText || null,
+        SharedWith: [0],
         Impact: 0,
         Team: this.$store.state.user.TeamUID
       };
@@ -150,16 +156,31 @@ export default Vue.extend({
           this.hideModal();
         });
     },
-    edit(): void {
-      console.log('edit');
-      firebase.database().ref('AAR Item/' + this.key)
+    edit(){
+      firebase
+        .database()
+        .ref('AAR Item/' + this.key)
+        .update({
+          Title: this.form.Title,
+          RelatedTo: this.form.Related || null,
+          DateOfAAR: this.form.Date || null,
+          WhatShouldHaveHappenedText: this.form.WhatShouldHaveHappenedText || null,
+          WhatActuallyHappenedText: this.form.WhatShouldHaveHappenedText || null,
+          WhatWasLearnt: this.form.WhatWasLearnt || null,
+          WhatNeedsToKnow: this.form.WhatNeedsToKnowText || null
+        }).then(() => {
+          this.resetForm();
+          this.hideModal();
+        })
     },
-    share(): void {},
-    cancel(): void {
+    share() {
+      this.sharing = true;
+    },
+    cancel(){
       this.resetForm();
       this.hideModal();
     },
-    resetForm(): void {
+    resetForm(){
       this.form.Title = '';
       this.form.Related = '';
       this.form.Date = null;
@@ -168,10 +189,10 @@ export default Vue.extend({
       this.form.WhatWasLearnt = [];
       this.form.WhatNeedsToKnowText = '';
     },
-    hideModal(): void {
+    hideModal() {
       this.$refs.aarModal.hide();
     },
-    showModal(): void {
+    showModal(){
       this.$refs.aarModal.show();
     }
   }

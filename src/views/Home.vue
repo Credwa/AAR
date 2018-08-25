@@ -7,12 +7,12 @@
           emptyText="Aar list of aars I have created and saved <br> <br>
           Individual Aar item"/>
         </b-tab>
-        <b-tab no-body title="Shared with me">
-          <aar-table :trigger="1" :aars="items" emptyText="Aar list of aars others have shared with me and I have not saved my aars <br> <br>
+        <b-tab class="tab-h" no-body title="Shared with me">
+          <aar-table :trigger="1" :aars="sharedAars" emptyText="Aar list of aars others have shared with me and I have not saved my aars <br> <br>
           Aar item shared with me"/>
         </b-tab>
-        <b-tab no-body title="Most influential">
-          <aar-table :trigger="1" :aars="items" emptyText="Aar list of aars which have been shared the most"/>
+        <b-tab class="tab-h" no-body title="Most influential">
+          <aar-table :trigger="1" :aars="influentialAars" emptyText="Aar list of aars which have been shared the most"/>
         </b-tab>
       </b-tabs>
       <aar-modal/>
@@ -40,31 +40,101 @@ export default Vue.extend({
   computed: {
     myAars(): Array<Object> {
       return this.$store.state.teamAars
-        .filter(aar => aar.Creator === this.$store.state.user.uid)
-        .map(obj => {
+        .filter((aar: any) => aar.Creator === this.$store.state.user.uid)
+        .map((obj: any )=> {
           return {
             isActive: false,
             Title: obj.Title,
             RelatedTo: obj.RelatedTo,
-            CreatedBy: 'me',
+            CreatedBy: this.getUserByUIDFromStore(obj.Creator),
             DateCreated: obj.DateCreated,
             Impact: obj.Impact,
             DateOfAAR: obj.DateOfAAR,
             WhatShouldHaveHappenedText: obj.WhatShouldHaveHappenedText,
             WhatNeedsToKnow: obj.WhatNeedsToKnow,
             WhatActuallyHappenedText: obj.WhatActuallyHappenedText,
-            WhatWasLearnt: obj.WhatWasLearnt
+            WhatWasLearnt: obj.WhatWasLearnt,
+            key: obj.key
           };
         });
+    },
+    sharedAars(): Array<Object> {
+      return this.$store.state.teamAars
+        .filter((aar: any) => {
+          if (aar.Creator === this.$store.state.user.uid) {
+            return true;
+          } else {
+            if (aar.SharedWith) {
+              return aar.SharedWith.find((val: any) => {
+                return val === this.$store.state.user.uid;
+              });
+            }
+          }
+        })
+        .map((obj: any) => {
+          return {
+            isActive: false,
+            Title: obj.Title,
+            RelatedTo: obj.RelatedTo,
+            DateCreated: obj.DateCreated,
+            CreatedBy: this.getUserByUIDFromStore(obj.Creator),
+            Impact: obj.Impact,
+            DateOfAAR: obj.DateOfAAR,
+            WhatShouldHaveHappenedText: obj.WhatShouldHaveHappenedText,
+            WhatNeedsToKnow: obj.WhatNeedsToKnow,
+            WhatActuallyHappenedText: obj.WhatActuallyHappenedText,
+            WhatWasLearnt: obj.WhatWasLearnt,
+            key: obj.key
+          };
+        });
+    },
+    influentialAars(): Array<Object> {
+      return this.$store.state.teamAars
+        .sort(
+          (a: any, b: any) =>
+            a.SharedWith.length > b.SharedWith.length
+              ? 1
+              : b.SharedWith.length > a.SharedWith.length ? -1 : 0
+        )
+        .map((obj: any) => {
+          return {
+            isActive: false,
+            Title: obj.Title,
+            RelatedTo: obj.RelatedTo,
+            DateCreated: obj.DateCreated,
+            CreatedBy: this.getUserByUIDFromStore(obj.Creator),
+            Impact: obj.Impact,
+            DateOfAAR: obj.DateOfAAR,
+            WhatShouldHaveHappenedText: obj.WhatShouldHaveHappenedText,
+            WhatNeedsToKnow: obj.WhatNeedsToKnow,
+            WhatActuallyHappenedText: obj.WhatActuallyHappenedText,
+            WhatWasLearnt: obj.WhatWasLearnt,
+            key: obj.key
+          };
+        }).reverse();
     }
   },
   methods: {
-    async getUserByUID(uid: any): Promise<Object> {
+    async getUserByUID(uid: String): Promise<Object> {
       let data = await firebase
         .database()
         .ref('Users/' + uid)
         .once('value');
       return data;
+    },
+    getUserByUIDFromStore(uid: String): String {
+      if (uid === this.$store.state.user.uid) {
+        return this.$store.state.user.UserEmail;
+      } else {
+        let users = this.$store.state.teamUsers;
+        let userEmail = '';
+        users.forEach((user: any) => {
+          if (user.uid === uid) {
+            userEmail = user.UserEmail;
+          }
+        });
+        return userEmail;
+      }
     },
     getTeamUsers(): void {
       firebase
@@ -72,25 +142,14 @@ export default Vue.extend({
         .ref('Teams/' + this.$store.state.user.TeamUID + '/TeamMembers')
         .once('value')
         .then(snapshot => {
-          Object.values(snapshot.val()).forEach(val => {
+          Object.values(snapshot.val()).forEach((val: any) => {
             // check if val not equal to yourself
             if (val !== this.$store.state.user.uid) {
-              this.getUserByUID(val).then(snap => {
-                this.$store.commit('newUser', snap.val());
+              this.getUserByUID(val).then((snap: any) => {
+                this.$store.commit('newUser', { uid: snap.key, ...snap.val() });
               });
             }
           });
-          // listen for new team members
-          firebase
-            .database()
-            .ref('Teams/' + this.$store.state.user.TeamUID + '/TeamMembers')
-            .on('child_added', snapshot => {
-              this.getUserByUID(Object.values(snapshot!.val()[0])).then(
-                snap => {
-                  this.$store.commit('newUser', snap.val());
-                }
-              );
-            });
         });
     },
     getTeamAars(): void {
