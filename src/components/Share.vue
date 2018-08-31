@@ -47,37 +47,48 @@
 
 <script lang="ts">
 import Vue from 'vue';
+
 import firebase from '@/config/firebaseinit.ts';
+
 export default Vue.extend({
   props: {
     uid: {
       required: true,
       type: String
+    },
+    form: {
+      required: true,
+      type: Object
     }
   },
   data() {
     return {
-      shareWith: [],
-      search: ''
+      shareWith: [] as string[],
+      search: '',
+      alreadyShared: []
     };
   },
   computed: {
-    teamUsers(): Object {
+    teamUsers(): object {
+      const availableUsersToShare = this.$store.state.teamUsers.filter(
+        (user: any) =>
+          !this.form.SharedWith.find((sUser: any) => {
+            return user.uid === sUser.uid;
+          })
+      );
       if (this.search.length > 0) {
-        return this.$store.state.teamUsers.filter((user: any) => {
+        return availableUsersToShare.filter((user: any) => {
           return user.UserEmail.match(this.search);
         });
       }
 
-      return this.$store.state.teamUsers;
+      return availableUsersToShare;
     },
-    shareList(): String {
+    shareList(): string {
       let list = '';
       this.shareWith.forEach(val => {
-        let user = this.$store.state.teamUsers.find((user: any) => {
-          if (val === user.uid) {
-          }
-          return val === user.uid;
+        const user = this.$store.state.teamUsers.find((myUser: any) => {
+          return val === myUser.uid;
         });
         list += user.UserEmail + ';';
       });
@@ -86,17 +97,23 @@ export default Vue.extend({
   },
   methods: {
     shareAar() {
-      console.log(this.uid)
-      if(this.shareWith.length > 0) {
-        firebase.database().ref('AAR Item/' + this.uid).update({SharedWith: this.shareWith}).then(() => {
-          this.close()
-        }).catch(e => {
-          console.log(e)
-        })
+      this.form.SharedWith.forEach((user: any) =>
+        this.shareWith.push(user.uid)
+      );
+      if (this.shareWith.length > 0) {
+        firebase
+          .database()
+          .ref('AAR Item/' + this.uid)
+          .update({ SharedWith: this.shareWith })
+          .then(() => {
+            this.close();
+          })
+          .catch(e => {
+            console.log(e);
+          });
       } else {
-        this.close()
+        this.close();
       }
-
     },
     close() {
       this.$root.$emit('bv::hide::modal', 'aarModal');

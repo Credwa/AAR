@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <b-card no-body border-variant="light">
+    <b-card no-body border-variant="light" style="width:90vw">
       <b-tabs pills card>
         <b-tab class="tab-h" no-body title="My Aars" active >
           <aar-table :trigger="0" :aars="myAars"
@@ -22,6 +22,7 @@
 
 <script lang="ts">
 import Vue from 'vue';
+
 import AarModal from '@/components/newAarModal.vue';
 import AarTable from '@/components/aarTable.vue';
 import firebase from '@/config/firebaseinit.ts';
@@ -41,7 +42,7 @@ export default Vue.extend({
     myAars(): Array<Object> {
       return this.$store.state.teamAars
         .filter((aar: any) => aar.Creator === this.$store.state.user.uid)
-        .map((obj: any )=> {
+        .map((obj: any) => {
           return {
             isActive: false,
             Title: obj.Title,
@@ -54,7 +55,8 @@ export default Vue.extend({
             WhatNeedsToKnow: obj.WhatNeedsToKnow,
             WhatActuallyHappenedText: obj.WhatActuallyHappenedText,
             WhatWasLearnt: obj.WhatWasLearnt,
-            key: obj.key
+            key: obj.key,
+            SharedWith: obj.SharedWith
           };
         });
     },
@@ -62,7 +64,7 @@ export default Vue.extend({
       return this.$store.state.teamAars
         .filter((aar: any) => {
           if (aar.Creator === this.$store.state.user.uid) {
-            return true;
+            return false;
           } else {
             if (aar.SharedWith) {
               return aar.SharedWith.find((val: any) => {
@@ -84,18 +86,20 @@ export default Vue.extend({
             WhatNeedsToKnow: obj.WhatNeedsToKnow,
             WhatActuallyHappenedText: obj.WhatActuallyHappenedText,
             WhatWasLearnt: obj.WhatWasLearnt,
-            key: obj.key
+            key: obj.key,
+            SharedWith: obj.SharedWith
           };
         });
     },
     influentialAars(): Array<Object> {
       return this.$store.state.teamAars
-        .sort(
-          (a: any, b: any) =>
-            a.SharedWith.length > b.SharedWith.length
+        .sort((a: any, b: any) => {
+          if (a.SharedWith && b.SharedWith) {
+            return a.SharedWith.length > b.SharedWith.length
               ? 1
-              : b.SharedWith.length > a.SharedWith.length ? -1 : 0
-        )
+              : b.SharedWith.length > a.SharedWith.length ? -1 : 0;
+          }
+        })
         .map((obj: any) => {
           return {
             isActive: false,
@@ -109,14 +113,16 @@ export default Vue.extend({
             WhatNeedsToKnow: obj.WhatNeedsToKnow,
             WhatActuallyHappenedText: obj.WhatActuallyHappenedText,
             WhatWasLearnt: obj.WhatWasLearnt,
-            key: obj.key
+            key: obj.key,
+            SharedWith: obj.SharedWith
           };
-        }).reverse();
+        })
+        .reverse();
     }
   },
   methods: {
     async getUserByUID(uid: String): Promise<Object> {
-      let data = await firebase
+      const data = await firebase
         .database()
         .ref('Users/' + uid)
         .once('value');
@@ -126,7 +132,7 @@ export default Vue.extend({
       if (uid === this.$store.state.user.uid) {
         return this.$store.state.user.UserEmail;
       } else {
-        let users = this.$store.state.teamUsers;
+        const users = this.$store.state.teamUsers;
         let userEmail = '';
         users.forEach((user: any) => {
           if (user.uid === uid) {
@@ -140,16 +146,25 @@ export default Vue.extend({
       firebase
         .database()
         .ref('Teams/' + this.$store.state.user.TeamUID + '/TeamMembers')
-        .once('value')
-        .then(snapshot => {
-          Object.values(snapshot.val()).forEach((val: any) => {
-            // check if val not equal to yourself
-            if (val !== this.$store.state.user.uid) {
-              this.getUserByUID(val).then((snap: any) => {
-                this.$store.commit('newUser', { uid: snap.key, ...snap.val() });
+        .on('child_added', snapshot => {
+          // check if val not equal to yourself
+          if (snapshot && snapshot.val() !== this.$store.state.user.uid) {
+            this.getUserByUID(snapshot.val()).then((snap: any) => {
+              this.$store.commit('newUser', {
+                uid: snap.key,
+                UserEmail: snap.val().UserEmail,
+                TeamUID: snap.val().TeamUID
               });
-            }
-          });
+            });
+          }
+          // Object.values(snapshot.val()).forEach((val: any) => {
+          //   // check if val not equal to yourself
+          //   if (val !== this.$store.state.user.uid) {
+          //     this.getUserByUID(val).then((snap: any) => {
+          //       this.$store.commit('newUser', { uid: snap.key, ...snap.val() });
+          //     });
+          //   }
+          // });
         });
     },
     getTeamAars(): void {

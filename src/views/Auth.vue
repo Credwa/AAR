@@ -7,9 +7,9 @@
 
 <script lang="ts">
 import Vue from 'vue';
-import SignUp from '@/components/SignUp.vue'
-'';
-import Confirmation from '@/components/Confirmation.vue'
+
+import SignUp from '@/components/SignUp.vue';
+import Confirmation from '@/components/Confirmation.vue';
 
 export default Vue.extend({
   name: 'Auth',
@@ -19,7 +19,7 @@ export default Vue.extend({
   },
   data() {
     return {
-      isSignedUp: false,
+      isSignedUp: false
     };
   },
   methods: {
@@ -33,7 +33,7 @@ export default Vue.extend({
 <style scoped lang="scss">
 .auth {
   height: 100vh;
-  display:flex;
+  display: flex;
   flex-direction: row;
   justify-content: center;
   align-content: center;

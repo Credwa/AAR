@@ -45,6 +45,7 @@
 <script lang="ts">
 import Vue from 'vue';
 import { mapState } from 'vuex';
+
 import firebase from '@/config/firebaseinit.ts';
 
 export default Vue.extend({
@@ -63,19 +64,11 @@ export default Vue.extend({
   computed: {
     validateEmail(): boolean {
       const emailReg = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-      let result: boolean = false;
-      if (emailReg.test(this.form.email)) {
-        result = true;
-      }
-      return result;
+      return emailReg.test(this.form.email);
     },
     validatePassword(): boolean {
       const passwordReg = /^(?=.*\w).{6,15}$/;
-      let result: boolean = false;
-      if (passwordReg.test(this.form.password)) {
-        result = true;
-      }
-      return result;
+      return passwordReg.test(this.form.password);
     }
   },
   methods: {
@@ -85,13 +78,19 @@ export default Vue.extend({
       firebase
         .auth()
         .createUserWithEmailAndPassword(this.form.email, this.form.password)
-        .then(() => {
+        .then(newUser => {
           // Create user profile and save name to firestore user profile
           let currentUser = {
             UserEmail: this.form.email,
             uid: firebase.auth().currentUser!.uid,
-            TeamUID: "",
+            TeamUID: ''
           };
+          if (newUser.user) {
+            newUser.user.updateProfile({
+              displayName: this.form.name,
+              photoURL: null
+            });
+          }
           firebase
             .database()
             .ref('Users/' + currentUser.uid)
@@ -114,7 +113,7 @@ export default Vue.extend({
         .catch(function(error: any) {
           // Handle Errors here.
           let errorCode = error.code;
-
+          console.log(error);
           if (errorCode == 'auth/weak-password') {
             self.weakPassword = true;
           }

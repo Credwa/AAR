@@ -56,7 +56,8 @@ export default new Router({
               .then(snapshot => {
                 store.commit('updateUser', {
                   uid: user.uid,
-                  ...snapshot.val()
+                  ...snapshot.val(),
+                  name: user.displayName
                 });
 
                 if (snapshot.val().TeamUID.length > 0) {
@@ -94,7 +95,8 @@ export default new Router({
               .then(snapshot => {
                 store.commit('updateUser', {
                   uid: user.uid,
-                  ...snapshot.val()
+                  ...snapshot.val(),
+                  name: user.displayName
                 });
                 if (snapshot.val().TeamUID.length > 0) {
                   getTeamData(snapshot.val().TeamUID)
@@ -114,7 +116,6 @@ export default new Router({
               });
           } else {
             // No user is signed in.
-            console.log('back');
             next('/');
           }
         });

@@ -25,7 +25,8 @@ export default new Vuex.Store({
     user: {
       UserEmail: String,
       uid: String,
-      TeamUID: String
+      TeamUID: String,
+      name: String
     },
     team: {
       TeamName: String,

@@ -1,14 +1,18 @@
 {
   "defaultSeverity": "warning",
-  "extends": [
-    "tslint:recommended"
-  ],
+  "extends": ["tslint:recommended"],
   "linterOptions": {
-    "exclude": [
-      "node_modules/**",
-      "src/components/newAarModal.vue"
-    ]
+    "exclude": ["node_modules/**", "src/components/newAarModal.vue"]
   },
   "rules": {
+    "quotemark": [true, "single"],
+    "indent": [true, "spaces", 2],
+    "ban-types": false,
+    "ordered-imports": false,
+    "array-type": false,
+    "arrow-parens": false,
+    "object-literal-sort-keys": false,
+    "max-line-length": false,
+    "trailing-comma": false
   }
 }
