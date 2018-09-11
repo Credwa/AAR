@@ -7,7 +7,7 @@
         <b-form-group label="Title"
                       label-for="titleInput"
                       id="titleGroupInput">
-          <b-form-input id="titleInput"
+          <b-form-input :disabled="isDisabledInput" id="titleInput"
                         type="text"
                         v-model="form.Title"
                         required
@@ -17,10 +17,8 @@
                       label-for="relatedInput"
                       id="relatedGroupInput"
                       horizontal>
-          <v-select v-model="form.Related" :options="teamAarTitles">
-                <span slot="no-options">
-                  Whoops! Can't find any Aars!
-                </span>
+          <v-select
+          @input.native="onNewRelated" :disabled="isDisabledInput" v-model="form.Related" :options="teamAarTitles">
           </v-select>
         </b-form-group>
         <b-form-group label="Date of Aar"
@@ -28,7 +26,9 @@
                       id="dateGroupInput"
                       horizontal
                       >
-          <b-form-input id="dateInput"
+          <b-form-input
+                        :disabled="isDisabledInput"
+                        id="dateInput"
                         type="date"
                         style="width:20vw"
                         v-model="form.Date"
@@ -37,7 +37,8 @@
         <b-form-group label="What should have happened?"
                       label-for="WhatShouldHaveHappenedTextInput"
                       id="WhatShouldHaveHappenedTextGroupInput">
-          <b-form-textarea id="WhatShouldHaveHappenedTextInput"
+          <b-form-textarea
+          :disabled="isDisabledInput" id="WhatShouldHaveHappenedTextInput"
                         type="text"
                         :rows="2"
                         v-model="form.WhatShouldHaveHappenedText"
@@ -48,6 +49,7 @@
                       id="WhatActuallyHappenedTextGroupInput">
           <b-form-textarea id="WhatActuallyHappenedTextInput"
                         type="text"
+                        :disabled="isDisabledInput"
                         :rows="2"
                         v-model="form.WhatActuallyHappenedText"
                         placeholder="Enter what actually happened"/>
@@ -59,15 +61,31 @@
           <b-form-input id="WhatWasLearntTextInput"
                         type="text"
                         @keyup.native.enter="newLearntItem"
+                        :disabled="isDisabledInput"
                         v-model="WhatWasLearntText"
                         placeholder="Enter what was learnt"/>
                         <b-btn @click="newLearntItem" class="add_learnt">+</b-btn>
+          </div>
+          <div style="display: flex; flex-wrap: wrap">
+            <div v-if="!learntItemClicked.isClicked" class="chip" v-for="(learntItem, index) in form.WhatWasLearnt" @click="showLearntItem(learntItem)" :key="index">{{learntItem | truncate(5)}}</div>
+
+            <div class="expanded" @click="learntItemClicked.isClicked = false" v-if="learntItemClicked.isClicked" > {{learntItemClicked.item}}</div>
+
+            <b-button
+            :disabled="isDisabledInput" v-if="learntItemClicked.isClicked" variant="danger"
+            @click="removeLearntItem"
+            class="delLearntItem">
+              delete
+            </b-button>
           </div>
         </b-form-group>
         <b-form-group label="Who needs to know"
                       label-for="WhoNeedsToKnowTextInput"
                       id="WhoNeedsToKnowTextGroupInput">
-          <v-select multiple v-model="form.SharedWith" :options="teamUsers">
+          <v-select multiple
+          @keydown.enter.native="onNewShared"
+          :disabled="isDisabledInput"
+          v-model="form.SharedWith" :options="teamUsers">
                 <span slot="no-options">
                   Whoops! Cant't find any members!
                 </span>
@@ -78,8 +96,8 @@
          <b-btn class="" variant="danger" style="margin-right: 5px;" @click="cancel">
            Cancel
          </b-btn>
-        <b-btn class="" variant="primary" @click="mode && mode === 'edit' ? edit() : mode && mode === 'share' ? share() : save()">
-           {{mode === 'edit' ? 'Edit' : mode === 'share' ? 'Share' : 'Save'}}
+        <b-btn class="" variant="primary" @click="mode && mode === 'edit' ? onEdit() : mode && mode === 'share' ? share() : mode === 'editing' ? editAndSave() : save()">
+           {{mode === 'edit' ? 'Edit' : mode === 'share' ? 'Share' :  mode === 'editing' ? 'Save Edit' : 'Save'}}
          </b-btn>
        </div>
       </b-form>
@@ -102,6 +120,10 @@ export default Vue.extend({
   },
   data() {
     return {
+      learntItemClicked: {
+        isClicked: false,
+        item: ''
+      },
       WhatWasLearntText: '',
       mode: null,
       key: null,
@@ -112,10 +134,32 @@ export default Vue.extend({
         Date: null,
         WhatShouldHaveHappenedText: '',
         WhatActuallyHappenedText: '',
-        WhatWasLearnt: 'test',
+        WhatWasLearnt: Array(),
         SharedWith: []
       }
     };
+  },
+  filters: {
+    truncate(text, length, clamp) {
+      text = text || '';
+      clamp = clamp || '...';
+      length = length || 30;
+
+      if (text.length <= length) return text;
+
+      var tcText = text.slice(0, length - clamp.length);
+      var last = tcText.length - 1;
+
+      while (last > 0 && tcText[last] !== ' ' && tcText[last] !== clamp[0])
+        last -= 1;
+
+      // Fix for case when text dont have any `space`
+      last = last || length - clamp.length;
+
+      tcText = tcText.slice(0, last);
+
+      return tcText + clamp;
+    }
   },
   computed: {
     teamUsers() {
@@ -126,10 +170,19 @@ export default Vue.extend({
       });
     },
     teamAarTitles() {
-      return this.$store.state.teamAars.map(aar => aar.Title);
+      return this.$store.state.teamAars
+        .map(aar => (typeof aar.RelatedTo === 'string' ? aar.RelatedTo : ''))
+        .filter(val => val.length > 0);
+    },
+    isDisabledInput() {
+      return this.mode === 'edit' || this.mode === 'share';
     }
   },
   methods: {
+    validateEmail(val) {
+      const emailReg = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+      return emailReg.test(val);
+    },
     modalOpen() {
       if (this.$root.newModalData) {
         let data = this.$root.newModalData;
@@ -165,13 +218,11 @@ export default Vue.extend({
           this.form.WhatWasLearnt = [];
         }
         this.form.WhatWasLearnt.push(this.WhatWasLearntText);
-        console.log(this.form.WhatWasLearnt);
         this.WhatWasLearntText = '';
       }
     },
     save() {
       const date = new Date();
-      console.log(this.form.SharedWith.length);
       let data = {
         Title: this.form.Title,
         Creator: this.$store.state.user.uid,
@@ -186,7 +237,6 @@ export default Vue.extend({
         Impact: 0,
         Team: this.$store.state.user.TeamUID
       };
-      // console.log(data.SharedWith)
       if (data.SharedWith.length === 0) {
         data.SharedWith = [0];
       }
@@ -199,7 +249,26 @@ export default Vue.extend({
           this.hideModal();
         });
     },
-    edit() {
+    showLearntItem(item) {
+      this.learntItemClicked = { isClicked: true, item };
+    },
+    removeLearntItem() {
+      this.learntItemClicked.isClicked = false;
+      this.form.WhatWasLearnt = this.form.WhatWasLearnt.filter(val => val !== this.learntItemClicked.item)
+    },
+    onNewRelated(evt) {
+      this.form.Related = evt.target.value;
+    },
+    onNewShared(evt) {
+      let email = evt.target.value;
+      if (this.validateEmail(email)) {
+        this.form.SharedWith.push(evt.target.value);
+      }
+    },
+    onEdit() {
+      this.mode = 'editing';
+    },
+    editAndSave() {
       firebase
         .database()
         .ref('AAR Item/' + this.key)
@@ -235,6 +304,7 @@ export default Vue.extend({
       this.form.SharedWith = [];
     },
     hideModal() {
+      this.learntItemClicked.isClicked = false
       this.$refs.aarModal.hide();
     },
     showModal() {
@@ -257,6 +327,50 @@ export default Vue.extend({
 .add_learnt {
   border-radius: 50px;
   margin-left: 1vw;
+}
+input,
+textarea,
+dropdown-toggle {
+  &:disabled {
+    background: #fafafa;
+  }
+}
+
+.chip {
+  width: 5vw;
+  margin-right: 1vw;
+  margin-top: 4px;
+  border-radius: 20px;
+  background: #eeeeee;
+  text-align: center;
+  border: solid #bdbdbd 1px;
+  box-shadow: 1px 7px 45px rgba(0, 0, 0, 0.2);
+  -webkit-box-shadow: 1px 7px 45px rgba(0, 0, 0, 0.2);
+  -moz-box-shadow: 1px 7px 45px rgba(0, 0, 0, 0.2);
+  &:hover {
+    background: #bdbdbd;
+    cursor: pointer;
+  }
+}
+
+.expanded {
+  background: #eee;
+  text-align: center;
+  margin-top: 4px;
+  border: solid #bdbdbd 1px;
+  box-shadow: 1px 7px 45px rgba(0, 0, 0, 0.2);
+  -webkit-box-shadow: 1px 7px 45px rgba(0, 0, 0, 0.2);
+  -moz-box-shadow: 1px 7px 45px rgba(0, 0, 0, 0.2);
+  padding: .5vw;
+  cursor: pointer;
+  &:hover {
+    background: #bdbdbd;
+  }
+}
+
+.delLearntItem {
+  margin-left: 1vw;
+  margin-top: 4px;
 }
 </style>
 

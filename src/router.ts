@@ -6,6 +6,7 @@ import store from './store';
 import Home from './views/Home.vue';
 import Auth from './views/Auth.vue';
 import Join from './views/Join.vue';
+import Login from './views/Login.vue';
 Vue.use(Router);
 
 const getUserData = async (uid: string): Promise<any> => {
@@ -32,6 +33,22 @@ export default new Router({
       path: '/',
       name: 'auth',
       component: Auth,
+      beforeEnter: (to, from, next) => {
+        firebase.auth().onAuthStateChanged(user => {
+          if (user) {
+            // User is signed in.
+            next('/home');
+          } else {
+            // No user is signed in.
+            next();
+          }
+        });
+      }
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: Login,
       beforeEnter: (to, from, next) => {
         firebase.auth().onAuthStateChanged(user => {
           if (user) {

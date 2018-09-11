@@ -1,5 +1,6 @@
 <template>
   <div class="home">
+    <b-btn class="signOut" variant="danger" @click="signOut">Sign Out</b-btn>
     <b-card no-body border-variant="light" style="width:90vw">
       <b-tabs pills card>
         <b-tab class="tab-h" no-body title="My Aars" active >
@@ -128,6 +129,14 @@ export default Vue.extend({
         .once('value');
       return data;
     },
+    signOut(): void {
+      firebase
+        .auth()
+        .signOut()
+        .then(() => {
+          this.$router.push('/login');
+        });
+    },
     getUserByUIDFromStore(uid: String): String {
       if (uid === this.$store.state.user.uid) {
         return this.$store.state.user.UserEmail;
@@ -203,6 +212,12 @@ export default Vue.extend({
   align-items: center;
   flex-direction: center;
   height: 100vh;
+}
+
+.signOut {
+  position: absolute;
+  top: 5vh;
+  right: 10vh;
 }
 
 .card-header {

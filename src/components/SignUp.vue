@@ -1,6 +1,11 @@
 <template>
   <div>
     <b-form class="sign-up" @submit.stop.prevent="onSubmit">
+      <h1>Sign Up</h1>
+      <div class="buttons-group">
+        <router-link to='/' tag="b-button" class="myBtn">Register</router-link>
+        <router-link to='/login' tag="b-button" class="myBtn">Sign In</router-link>
+      </div>
       <b-form-group id="nameGroup"
                     label="Name"
                     label-for="name"
@@ -73,6 +78,8 @@ export default Vue.extend({
   },
   methods: {
     onSubmit(evt: any): void {
+      this.emailTaken = false;
+      this.weakPassword = false;
       const self = this;
       evt.preventDefault();
       firebase
@@ -135,6 +142,15 @@ export default Vue.extend({
   align-content: center;
   align-items: center;
   flex-direction: center;
+}
+
+.buttons-group {
+  margin-bottom: 5vh;
+}
+
+.myBtn {
+  margin: 1vh;
+  width: 10vw;
 }
 
 .error {
