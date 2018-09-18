@@ -67,7 +67,7 @@
                         <b-btn @click="newLearntItem" class="add_learnt">+</b-btn>
           </div>
           <div style="display: flex; flex-wrap: wrap">
-            <div v-if="!learntItemClicked.isClicked" class="chip" v-for="(learntItem, index) in form.WhatWasLearnt" @click="showLearntItem(learntItem)" :key="index">{{learntItem | truncate(5)}}</div>
+            <div v-if="!learntItemClicked.isClicked" class="chip" v-for="(learntItem) in form.WhatWasLearnt" @click="showLearntItem(learntItem)" :key="learntItem">{{learntItem | truncate(5)}}</div>
 
             <div class="expanded" @click="learntItemClicked.isClicked = false" v-if="learntItemClicked.isClicked" > {{learntItemClicked.item}}</div>
 
@@ -85,7 +85,7 @@
           <v-select multiple
           @keydown.enter.native="onNewShared"
           :disabled="isDisabledInput"
-          v-model="form.SharedWith" :options="teamUsers">
+          v-model="SharedWith" :options="teamUsers">
                 <span slot="no-options">
                   Whoops! Cant't find any members!
                 </span>
@@ -93,16 +93,32 @@
         </b-form-group>
 
         <div slot="modal-footer" class="flex-center">
-         <b-btn class="" variant="danger" style="margin-right: 5px;" @click="cancel">
+         <b-btn class="" variant="warning" style="margin-right: 5px;" @click="cancel">
            Cancel
          </b-btn>
-        <b-btn class="" variant="primary" @click="mode && mode === 'edit' ? onEdit() : mode && mode === 'share' ? share() : mode === 'editing' ? editAndSave() : save()">
+        <b-btn style="margin-right: 5px;" class="" variant="primary" @click="mode && mode === 'edit' ? onEdit() : mode && mode === 'share' ? share() : mode === 'editing' ? editAndSave() : save()">
            {{mode === 'edit' ? 'Edit' : mode === 'share' ? 'Share' :  mode === 'editing' ? 'Save Edit' : 'Save'}}
          </b-btn>
+         <b-btn @click="onDelete" variant="danger" v-if="mode === 'edit' || mode === 'editing'">
+           Delete
+         </b-btn>
+
        </div>
       </b-form>
       <share v-if="sharing" :uid="key" :form="form"></share>
     </b-container>
+  </b-modal>
+  <b-modal centered size="sm" id="delModal" :title="`Delete aar -  ?`" ref="delModal">
+
+        <div slot="modal-footer" class="flex-center">
+         <b-btn class="" variant="warning" style="margin-right: 5px;" @click="onCancelDelModal">
+           Cancel
+         </b-btn>
+         <b-btn variant="danger" @click="onDeleteConfirm">
+           Delete
+         </b-btn>
+
+       </div>
   </b-modal>
 </div>
 
@@ -111,6 +127,7 @@
 <script>
 import Vue from 'vue';
 import VSelect from 'vue-select';
+import _ from 'underscore';
 import firebase from '@/config/firebaseinit.ts';
 import Share from '@/components/Share.vue';
 export default Vue.extend({
@@ -120,6 +137,8 @@ export default Vue.extend({
   },
   data() {
     return {
+      aarToDelete: {},
+      SharedWith: [],
       learntItemClicked: {
         isClicked: false,
         item: ''
@@ -135,7 +154,7 @@ export default Vue.extend({
         WhatShouldHaveHappenedText: '',
         WhatActuallyHappenedText: '',
         WhatWasLearnt: Array(),
-        SharedWith: []
+        SharedWith: Array()
       }
     };
   },
@@ -163,22 +182,32 @@ export default Vue.extend({
   },
   computed: {
     teamUsers() {
-      return this.$store.state.teamUsers.map(user => {
+      return _.uniq(this.$store.state.teamUsers.map(user => {
         return user.uid !== this.$store.state.user.uid
           ? { label: user.UserEmail, uid: user.uid }
           : false;
-      });
+      }));
     },
     teamAarTitles() {
-      return this.$store.state.teamAars
-        .map(aar => (typeof aar.RelatedTo === 'string' ? aar.RelatedTo : ''))
-        .filter(val => val.length > 0);
+      return _.uniq(
+        this.$store.state.teamAars
+          .map(
+            aar =>
+              typeof aar.RelatedTo === 'string'
+                ? aar.RelatedTo
+                : ''
+          )
+          .filter(val => val.length > 0)
+      );
     },
     isDisabledInput() {
       return this.mode === 'edit' || this.mode === 'share';
     }
   },
   methods: {
+    getAarByKey(key) {
+      return this.$store.state.teamAars.find(aar => aar.key === this.key);
+    },
     validateEmail(val) {
       const emailReg = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
       return emailReg.test(val);
@@ -196,14 +225,24 @@ export default Vue.extend({
         this.form.WhatActuallyHappenedText = data.WhatActuallyHappenedText;
         this.form.WhatWasLearnt = data.WhatWasLearnt;
         if (data.SharedWith) {
-          this.form.SharedWith = data.SharedWith.filter(
+          this.SharedWith = data.SharedWith.filter(
             uid => uid !== this.$store.state.user.uid
           )
             .map(uid =>
               this.$store.state.teamUsers.find(user => user.uid === uid)
             )
             .map(user => {
-              return { label: user.UserEmail, uid: user.uid };
+              try {
+                if (typeof user.UserEmail !== 'undefined') {
+                  return {
+                    label: user.UserEmail,
+                    uid: user.uid
+                  };
+                }
+              } catch (e) {
+                if (e) {
+                }
+              }
             });
         }
       }
@@ -226,14 +265,14 @@ export default Vue.extend({
       let data = {
         Title: this.form.Title,
         Creator: this.$store.state.user.uid,
-        RelatedTo: this.form.Related || null,
+        RelatedTo: this.form.Related.toLowerCase() || null,
         DateCreated: `${date.toDateString()} ${date.getUTCHours()}:${date.getUTCMinutes()}`,
         DateOfAAR: this.form.Date || null,
         WhatShouldHaveHappenedText:
           this.form.WhatShouldHaveHappenedText || null,
         WhatActuallyHappenedText: this.form.WhatActuallyHappenedText || null,
         WhatWasLearnt: this.form.WhatWasLearnt || null,
-        SharedWith: this.form.SharedWith.map(user => user.uid),
+        SharedWith: this.SharedWith.map(user => user.uid),
         Impact: 0,
         Team: this.$store.state.user.TeamUID
       };
@@ -254,7 +293,9 @@ export default Vue.extend({
     },
     removeLearntItem() {
       this.learntItemClicked.isClicked = false;
-      this.form.WhatWasLearnt = this.form.WhatWasLearnt.filter(val => val !== this.learntItemClicked.item)
+      this.form.WhatWasLearnt = this.form.WhatWasLearnt.filter(
+        val => val !== this.learntItemClicked.item
+      );
     },
     onNewRelated(evt) {
       this.form.Related = evt.target.value;
@@ -262,7 +303,7 @@ export default Vue.extend({
     onNewShared(evt) {
       let email = evt.target.value;
       if (this.validateEmail(email)) {
-        this.form.SharedWith.push(evt.target.value);
+        this.SharedWith.push(evt.target.value);
       }
     },
     onEdit() {
@@ -280,7 +321,7 @@ export default Vue.extend({
             this.form.WhatShouldHaveHappenedText || null,
           WhatActuallyHappenedText: this.form.WhatActuallyHappenedText || null,
           WhatWasLearnt: this.form.WhatWasLearnt || null,
-          SharedWith: this.form.SharedWith.map(user => user.uid)
+          SharedWith: this.SharedWith.map(user => user.uid)
         })
         .then(() => {
           this.resetForm();
@@ -303,8 +344,24 @@ export default Vue.extend({
       this.form.WhatWasLearnt = [];
       this.form.SharedWith = [];
     },
+    onDelete() {
+      this.aarToDelete = this.getAarByKey(this.key);
+      this.aarToDelete = this.form;
+      this.hideModal();
+      this.$refs.delModal.show();
+    },
+    onCancelDelModal() {
+      this.$refs.delModal.hide();
+    },
+    onDeleteConfirm() {
+      firebase
+        .database()
+        .ref('AAR Item/' + this.key)
+        .remove();
+      this.$refs.delModal.hide();
+    },
     hideModal() {
-      this.learntItemClicked.isClicked = false
+      this.learntItemClicked.isClicked = false;
       this.$refs.aarModal.hide();
     },
     showModal() {
@@ -361,7 +418,7 @@ dropdown-toggle {
   box-shadow: 1px 7px 45px rgba(0, 0, 0, 0.2);
   -webkit-box-shadow: 1px 7px 45px rgba(0, 0, 0, 0.2);
   -moz-box-shadow: 1px 7px 45px rgba(0, 0, 0, 0.2);
-  padding: .5vw;
+  padding: 0.5vw;
   cursor: pointer;
   &:hover {
     background: #bdbdbd;

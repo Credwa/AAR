@@ -23,6 +23,7 @@
 
 <script lang="ts">
 import Vue from 'vue';
+import _ from 'underscore';
 
 import AarModal from '@/components/newAarModal.vue';
 import AarTable from '@/components/aarTable.vue';
@@ -41,84 +42,96 @@ export default Vue.extend({
   },
   computed: {
     myAars(): Array<Object> {
-      return this.$store.state.teamAars
-        .filter((aar: any) => aar.Creator === this.$store.state.user.uid)
-        .map((obj: any) => {
-          return {
-            isActive: false,
-            Title: obj.Title,
-            RelatedTo: obj.RelatedTo,
-            CreatedBy: this.getUserByUIDFromStore(obj.Creator),
-            DateCreated: obj.DateCreated,
-            Impact: obj.Impact,
-            DateOfAAR: obj.DateOfAAR,
-            WhatShouldHaveHappenedText: obj.WhatShouldHaveHappenedText,
-            WhatNeedsToKnow: obj.WhatNeedsToKnow,
-            WhatActuallyHappenedText: obj.WhatActuallyHappenedText,
-            WhatWasLearnt: obj.WhatWasLearnt,
-            key: obj.key,
-            SharedWith: obj.SharedWith
-          };
-        });
+      return _.uniq(
+        this.$store.state.teamAars
+          .filter((aar: any) => aar.Creator === this.$store.state.user.uid)
+          .map((obj: any) => {
+            return {
+              isActive: false,
+              Title: obj.Title,
+              RelatedTo: obj.RelatedTo,
+              CreatedBy: this.getUserByUIDFromStore(obj.Creator),
+              DateCreated: obj.DateCreated,
+              Impact: obj.Impact,
+              DateOfAAR: obj.DateOfAAR,
+              WhatShouldHaveHappenedText: obj.WhatShouldHaveHappenedText,
+              WhatNeedsToKnow: obj.WhatNeedsToKnow,
+              WhatActuallyHappenedText: obj.WhatActuallyHappenedText,
+              WhatWasLearnt: obj.WhatWasLearnt,
+              key: obj.key,
+              SharedWith: obj.SharedWith
+            };
+          }),
+        false,
+        (aar: any) => aar.key
+      );
     },
     sharedAars(): Array<Object> {
-      return this.$store.state.teamAars
-        .filter((aar: any) => {
-          if (aar.Creator === this.$store.state.user.uid) {
-            return false;
-          } else {
-            if (aar.SharedWith) {
-              return aar.SharedWith.find((val: any) => {
-                return val === this.$store.state.user.uid;
-              });
+      return _.uniq(
+        this.$store.state.teamAars
+          .filter((aar: any) => {
+            if (aar.Creator === this.$store.state.user.uid) {
+              return false;
+            } else {
+              if (aar.SharedWith) {
+                return aar.SharedWith.find((val: any) => {
+                  return val === this.$store.state.user.uid;
+                });
+              }
             }
-          }
-        })
-        .map((obj: any) => {
-          return {
-            isActive: false,
-            Title: obj.Title,
-            RelatedTo: obj.RelatedTo,
-            DateCreated: obj.DateCreated,
-            CreatedBy: this.getUserByUIDFromStore(obj.Creator),
-            Impact: obj.Impact,
-            DateOfAAR: obj.DateOfAAR,
-            WhatShouldHaveHappenedText: obj.WhatShouldHaveHappenedText,
-            WhatNeedsToKnow: obj.WhatNeedsToKnow,
-            WhatActuallyHappenedText: obj.WhatActuallyHappenedText,
-            WhatWasLearnt: obj.WhatWasLearnt,
-            key: obj.key,
-            SharedWith: obj.SharedWith
-          };
-        });
+          })
+          .map((obj: any) => {
+            return {
+              isActive: false,
+              Title: obj.Title,
+              RelatedTo: obj.RelatedTo,
+              DateCreated: obj.DateCreated,
+              CreatedBy: this.getUserByUIDFromStore(obj.Creator),
+              Impact: obj.Impact,
+              DateOfAAR: obj.DateOfAAR,
+              WhatShouldHaveHappenedText: obj.WhatShouldHaveHappenedText,
+              WhatNeedsToKnow: obj.WhatNeedsToKnow,
+              WhatActuallyHappenedText: obj.WhatActuallyHappenedText,
+              WhatWasLearnt: obj.WhatWasLearnt,
+              key: obj.key,
+              SharedWith: obj.SharedWith
+            };
+          }),
+        false,
+        (aar: any) => aar.key
+      );
     },
     influentialAars(): Array<Object> {
-      return this.$store.state.teamAars
-        .sort((a: any, b: any) => {
-          if (a.SharedWith && b.SharedWith) {
-            return a.SharedWith.length > b.SharedWith.length
-              ? 1
-              : b.SharedWith.length > a.SharedWith.length ? -1 : 0;
-          }
-        })
-        .map((obj: any) => {
-          return {
-            isActive: false,
-            Title: obj.Title,
-            RelatedTo: obj.RelatedTo,
-            DateCreated: obj.DateCreated,
-            CreatedBy: this.getUserByUIDFromStore(obj.Creator),
-            Impact: obj.Impact,
-            DateOfAAR: obj.DateOfAAR,
-            WhatShouldHaveHappenedText: obj.WhatShouldHaveHappenedText,
-            WhatNeedsToKnow: obj.WhatNeedsToKnow,
-            WhatActuallyHappenedText: obj.WhatActuallyHappenedText,
-            WhatWasLearnt: obj.WhatWasLearnt,
-            key: obj.key,
-            SharedWith: obj.SharedWith
-          };
-        })
-        .reverse();
+      return _.uniq(
+        this.$store.state.teamAars
+          .sort((a: any, b: any) => {
+            if (a.SharedWith && b.SharedWith) {
+              return a.SharedWith.length > b.SharedWith.length
+                ? 1
+                : b.SharedWith.length > a.SharedWith.length ? -1 : 0;
+            }
+          })
+          .map((obj: any) => {
+            return {
+              isActive: false,
+              Title: obj.Title,
+              RelatedTo: obj.RelatedTo,
+              DateCreated: obj.DateCreated,
+              CreatedBy: this.getUserByUIDFromStore(obj.Creator),
+              Impact: obj.Impact,
+              DateOfAAR: obj.DateOfAAR,
+              WhatShouldHaveHappenedText: obj.WhatShouldHaveHappenedText,
+              WhatNeedsToKnow: obj.WhatNeedsToKnow,
+              WhatActuallyHappenedText: obj.WhatActuallyHappenedText,
+              WhatWasLearnt: obj.WhatWasLearnt,
+              key: obj.key,
+              SharedWith: obj.SharedWith
+            };
+          })
+          .reverse(),
+        false,
+        (aar: any) => aar.key
+      );
     }
   },
   methods: {
@@ -151,11 +164,11 @@ export default Vue.extend({
         return userEmail;
       }
     },
-    getTeamUsers(): void {
+   getTeamUsers(): void {
       firebase
         .database()
         .ref('Teams/' + this.$store.state.user.TeamUID + '/TeamMembers')
-        .on('child_added', snapshot => {
+        .on('child_added', (snapshot: any) => {
           // check if val not equal to yourself
           if (snapshot && snapshot.val() !== this.$store.state.user.uid) {
             this.getUserByUID(snapshot.val()).then((snap: any) => {
@@ -166,14 +179,6 @@ export default Vue.extend({
               });
             });
           }
-          // Object.values(snapshot.val()).forEach((val: any) => {
-          //   // check if val not equal to yourself
-          //   if (val !== this.$store.state.user.uid) {
-          //     this.getUserByUID(val).then((snap: any) => {
-          //       this.$store.commit('newUser', { uid: snap.key, ...snap.val() });
-          //     });
-          //   }
-          // });
         });
     },
     getTeamAars(): void {
@@ -184,7 +189,7 @@ export default Vue.extend({
         .ref('AAR Item')
         .orderByChild('Team')
         .equalTo(this.$store.state.user.TeamUID)
-        .on('child_added', snapshot => {
+        .on('child_added', (snapshot: any) => {
           this.$store.commit('newAar', {
             key: snapshot!.key,
             ...snapshot!.val()
@@ -192,6 +197,22 @@ export default Vue.extend({
         });
     },
     init(): void {
+      firebase
+        .database()
+        .ref('AAR Item')
+        .orderByChild('Team')
+        .equalTo(this.$store.state.user.TeamUID)
+        .on('child_changed', (snapshot: any) => {
+          this.$store.commit('updateAar', {key: snapshot.key, data: snapshot.val()});
+        });
+      firebase
+        .database()
+        .ref('AAR Item')
+        .orderByChild('Team')
+        .equalTo(this.$store.state.user.TeamUID)
+        .on('child_removed', (snapshot: any) => {
+          this.$store.commit('removeAar', snapshot.key);
+        });
       // get all team aars
       this.getTeamUsers();
       this.getTeamAars();

@@ -48,6 +48,15 @@ export default new Vuex.Store({
     },
     newAar: (state, aar) => {
       state.teamAars.push(aar);
+    },
+    removeAar: (state, key) => {
+      state.teamAars = state.teamAars.filter((aar: any) => aar.key !== key);
+    },
+    updateAar: (state, payload) => {
+      state.teamAars = state.teamAars.filter(
+        (aar: any) => aar.key !== payload.key
+      );
+      state.teamAars.push(payload.data);
     }
   },
   actions: {}
