@@ -66,7 +66,7 @@
                         placeholder="Enter what was learnt"/>
                         <b-btn @click="newLearntItem" class="add_learnt">+</b-btn>
           </div>
-          <div style="display: flex; flex-wrap: wrap">
+          <!-- <div style="display: flex; flex-wrap: wrap">
             <div v-if="!learntItemClicked.isClicked" class="chip" v-for="(learntItem) in form.WhatWasLearnt" @click="showLearntItem(learntItem)" :key="learntItem">{{learntItem | truncate(5)}}</div>
 
             <div class="expanded" @click="learntItemClicked.isClicked = false" v-if="learntItemClicked.isClicked" > {{learntItemClicked.item}}</div>
@@ -77,7 +77,24 @@
             class="delLearntItem">
               delete
             </b-button>
-          </div>
+          </div> -->
+        <div class="flex-center" style="flex-direction:column; margin-top: 1vh">
+          <b-btn  v-b-toggle.myCollapse class="learnt_btn">
+            <span class="when-opened">Hide learnt items</span>
+            <span class="when-closed">Show learnt items</span>
+            My Collapse
+          </b-btn>
+          <b-collapse id="myCollapse">
+          <b-list-group>
+            <b-list-group-item v-for="(learntItem) in form.WhatWasLearnt" :key="learntItem">{{learntItem}}<b-button
+            :disabled="isDisabledInput" variant="danger"
+            @click="removeLearntItem(learntItem)"
+            class="delLearntItem add_learnt">
+              X
+            </b-button></b-list-group-item>
+          </b-list-group>
+          </b-collapse>
+        </div>
         </b-form-group>
         <b-form-group label="Who needs to know"
                       label-for="WhoNeedsToKnowTextInput"
@@ -182,21 +199,18 @@ export default Vue.extend({
   },
   computed: {
     teamUsers() {
-      return _.uniq(this.$store.state.teamUsers.map(user => {
-        return user.uid !== this.$store.state.user.uid
-          ? { label: user.UserEmail, uid: user.uid }
-          : false;
-      }));
+      return _.uniq(
+        this.$store.state.teamUsers.map(user => {
+          return user.uid !== this.$store.state.user.uid
+            ? { label: user.UserEmail, uid: user.uid }
+            : false;
+        })
+      );
     },
     teamAarTitles() {
       return _.uniq(
         this.$store.state.teamAars
-          .map(
-            aar =>
-              typeof aar.RelatedTo === 'string'
-                ? aar.RelatedTo
-                : ''
-          )
+          .map(aar => (typeof aar.RelatedTo === 'string' ? aar.RelatedTo : ''))
           .filter(val => val.length > 0)
       );
     },
@@ -262,22 +276,27 @@ export default Vue.extend({
     },
     save() {
       const date = new Date();
+      console.log(this.SharedWith);
       let data = {
         Title: this.form.Title,
         Creator: this.$store.state.user.uid,
-        RelatedTo: this.form.Related.toLowerCase() || null,
+        RelatedTo: this.form.Related ? this.form.Related.toLowerCase() : null,
         DateCreated: `${date.toDateString()} ${date.getUTCHours()}:${date.getUTCMinutes()}`,
         DateOfAAR: this.form.Date || null,
         WhatShouldHaveHappenedText:
           this.form.WhatShouldHaveHappenedText || null,
         WhatActuallyHappenedText: this.form.WhatActuallyHappenedText || null,
         WhatWasLearnt: this.form.WhatWasLearnt || null,
-        SharedWith: this.SharedWith.map(user => user.uid),
+        SharedWith: this.SharedWith[0]
+          ? this.SharedWith.map(user => user.uid)
+          : null,
         Impact: 0,
         Team: this.$store.state.user.TeamUID
       };
-      if (data.SharedWith.length === 0) {
-        data.SharedWith = [0];
+      if (data.SharedWith) {
+        if (!data.SharedWith[0]) {
+          data.SharedWith = [0];
+        }
       }
       firebase
         .database()
@@ -291,10 +310,9 @@ export default Vue.extend({
     showLearntItem(item) {
       this.learntItemClicked = { isClicked: true, item };
     },
-    removeLearntItem() {
-      this.learntItemClicked.isClicked = false;
+    removeLearntItem(item) {
       this.form.WhatWasLearnt = this.form.WhatWasLearnt.filter(
-        val => val !== this.learntItemClicked.item
+        val => val !== item
       );
     },
     onNewRelated(evt) {
@@ -321,7 +339,9 @@ export default Vue.extend({
             this.form.WhatShouldHaveHappenedText || null,
           WhatActuallyHappenedText: this.form.WhatActuallyHappenedText || null,
           WhatWasLearnt: this.form.WhatWasLearnt || null,
-          SharedWith: this.SharedWith.map(user => user.uid)
+          SharedWith: this.SharedWith[0]
+          ? this.SharedWith.map(user => user.uid)
+          : null,
         })
         .then(() => {
           this.resetForm();
@@ -393,6 +413,11 @@ dropdown-toggle {
   }
 }
 
+.collapsed > .when-opened,
+:not(.collapsed) > .when-closed {
+  display: none;
+}
+
 .chip {
   width: 5vw;
   margin-right: 1vw;
@@ -426,8 +451,14 @@ dropdown-toggle {
 }
 
 .delLearntItem {
-  margin-left: 1vw;
-  margin-top: 4px;
+  float: right;
+  font-size: .6em
+}
+
+.learnt_btn {
+  background: none;
+  color: black;
+  border: 2px double black;
 }
 </style>
 
