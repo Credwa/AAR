@@ -12,6 +12,7 @@
     "@types/underscore": "^1.8.9",
     "bootstrap-vue": "^2.0.0-rc.11",
     "firebase": "^5.4.0",
+    "underscore": "^1.9.1",
     "vue": "^2.5.17",
     "vue-router": "^3.0.1",
     "vue-select": "^2.4.0",

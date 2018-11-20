@@ -7,6 +7,7 @@ import Home from './views/Home.vue';
 import Auth from './views/Auth.vue';
 import Join from './views/Join.vue';
 import Login from './views/Login.vue';
+import Settings from './views/Settings.vue';
 Vue.use(Router);
 
 const getUserData = async (uid: string): Promise<any> => {
@@ -104,6 +105,44 @@ export default new Router({
       path: '/home',
       name: 'home',
       component: Home,
+      beforeEnter: (to, from, next) => {
+        firebase.auth().onAuthStateChanged(user => {
+          if (user) {
+            // User is signed in.
+            getUserData(user.uid)
+              .then(snapshot => {
+                store.commit('updateUser', {
+                  uid: user.uid,
+                  ...snapshot.val(),
+                  name: user.displayName
+                });
+                if (snapshot.val().TeamUID.length > 0) {
+                  getTeamData(snapshot.val().TeamUID)
+                    .then(data => {
+                      store.commit('updateTeam', data.val());
+                      next();
+                    })
+                    .catch(e => {
+                      next('/');
+                    });
+                } else {
+                  next('/join');
+                }
+              })
+              .catch(err => {
+                next('/');
+              });
+          } else {
+            // No user is signed in.
+            next('/');
+          }
+        });
+      }
+    },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: Settings,
       beforeEnter: (to, from, next) => {
         firebase.auth().onAuthStateChanged(user => {
           if (user) {

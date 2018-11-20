@@ -88,6 +88,7 @@ export default Vue.extend({
         .then(newUser => {
           // Create user profile and save name to firestore user profile
           let currentUser = {
+            UserName: this.form.name,
             UserEmail: this.form.email,
             uid: firebase.auth().currentUser!.uid,
             TeamUID: ''
@@ -102,6 +103,7 @@ export default Vue.extend({
             .database()
             .ref('Users/' + currentUser.uid)
             .set({
+              UserName: currentUser.UserName,
               UserEmail: currentUser.UserEmail,
               TeamUID: currentUser.TeamUID
             });

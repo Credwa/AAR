@@ -1,5 +1,6 @@
 <template>
   <div class="home">
+    <b-btn class="settings-btn" variant="primary" @click="gotoSettings">Settings</b-btn>
     <b-btn class="signOut" variant="danger" @click="signOut">Sign Out</b-btn>
     <b-card no-body border-variant="light" style="width:90vw">
       <b-tabs pills card>
@@ -12,7 +13,7 @@
           <aar-table :trigger="1" :aars="sharedAars" emptyText="Aar list of aars others have shared with me and I have not saved my aars <br> <br>
           Aar item shared with me"/>
         </b-tab>
-        <b-tab class="tab-h" no-body title="Most influential">
+        <b-tab class="tab-h" no-body title="Insights">
           <aar-table :trigger="1" :aars="influentialAars" emptyText="Aar list of aars which have been shared the most"/>
         </b-tab>
       </b-tabs>
@@ -150,6 +151,9 @@ export default Vue.extend({
           this.$router.push('/login');
         });
     },
+    gotoSettings(): void {
+      this.$router.push('/settings');
+    },
     getUserByUIDFromStore(uid: String): String {
       if (uid === this.$store.state.user.uid) {
         return this.$store.state.user.UserEmail;
@@ -239,6 +243,12 @@ export default Vue.extend({
   position: absolute;
   top: 5vh;
   right: 10vh;
+}
+
+.settings-btn {
+  position: absolute;
+  top: 5vh;
+  right: 25vh;
 }
 
 .card-header {
