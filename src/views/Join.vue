@@ -89,7 +89,8 @@ export default Vue.extend({
             const newTeam = {
               TeamName: this.form.teamName,
               TeamCreatedDate: `${date.toDateString()} ${date.getUTCHours()}:${date.getUTCMinutes()}`,
-              TeamMembers: [this.$store.state.user.uid]
+              TeamMembers: [this.$store.state.user.uid],
+              TeamAdmins: [this.$store.state.user.uid]
             };
             firebase
               .database()
